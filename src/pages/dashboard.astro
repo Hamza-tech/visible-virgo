@@ -1,0 +1,52 @@
+---
+import { app } from "../firebase/server";
+import { getFirestore } from "firebase-admin/firestore";
+import { getAuth } from "firebase-admin/auth";
+import Layout from "../layouts/Layout.astro";
+import FreindList from "../components/freindList.astro";
+import Header from "../components/Header.astro";
+import Sidebar from "./Sidebar.astro";
+
+
+const auth = getAuth(app);
+
+/* Check current session */
+if (!Astro.cookies.has("session")) {
+  return Astro.redirect("/signin");
+}
+const sessionCookie = Astro.cookies.get("session").value;
+const decodedCookie = await auth.verifySessionCookie(sessionCookie);
+const user = await auth.getUser(decodedCookie.uid);
+
+if (!user) {
+  return Astro.redirect("/signin");
+}
+
+interface Friend {
+  id: string;
+  name: string;
+  age: number;
+  isBestFriend: boolean;
+}
+
+const db = getFirestore(app);
+const friendsRef = db.collection("friends");
+const friendsSnapshot = await friendsRef.get();
+const friends = friendsSnapshot.docs.map((doc) => ({
+  id: doc.id,
+  ...doc.data(),
+})) as Friend[];
+
+---
+
+<Layout title="dashboard">
+  <body class="antialiased bg-gray-200">
+    <div x-data="{ sidemenu: false }" class="h-screen flex overflow-hidden" x-cloak @keydown.window.escape="sidemenu = false">
+      <Sidebar displayName={user.displayName} />
+      <div class="flex-1 flex-col relative z-0 overflow-y-auto">
+        <Header />
+        <FreindList />
+      </div>
+    </div>
+  </body>
+</Layout>

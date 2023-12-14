@@ -1,0 +1,16 @@
+---
+import { app } from "../firebase/server";
+import { getAuth } from "firebase-admin/auth";
+import ChatComponent from "./Chat";
+const auth = getAuth(app);
+if (!Astro.cookies.has("session")) {
+  return Astro.redirect("/signin");
+}
+const sessionCookie = Astro.cookies.get("session").value;
+const decodedCookie = await auth.verifySessionCookie(sessionCookie);
+const user = await auth.getUser(decodedCookie.uid);
+---
+
+<div>
+  {user  && <ChatComponent token={user} name={user.displayName} client:load  /> }
+</div>
